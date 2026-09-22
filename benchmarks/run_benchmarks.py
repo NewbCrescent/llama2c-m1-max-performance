@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build and benchmark FastOllama variants with repeatable settings.
+"""Build and benchmark the llama2.c M1 Max variants with repeatable settings.
 
 The harness deliberately compiles every variant with one Clang installation,
 uses deterministic greedy decoding, records every trial, and verifies generated
@@ -358,7 +358,7 @@ def main() -> int:
     metadata = machine_metadata(cc, args.model, args.tokenizer, args)
 
     samples: list[dict[str, object]] = []
-    with tempfile.TemporaryDirectory(prefix="fastollama-bench-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="llama2c-m1max-bench-") as temporary:
         binaries, commands = compile_variants(cc, Path(temporary), include_neon)
         metadata["compile_commands"] = {
             name: [

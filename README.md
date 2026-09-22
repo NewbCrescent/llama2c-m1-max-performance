@@ -1,6 +1,6 @@
-# FastOllama
+# llama2.c Performance Engineering on a 16-inch M1 Max MacBook Pro
 
-[![CI](https://github.com/NewbCrescent/FastOllama/actions/workflows/ci.yml/badge.svg)](https://github.com/NewbCrescent/FastOllama/actions/workflows/ci.yml)
+[![CI](https://github.com/NewbCrescent/llama2c-m1-max-performance/actions/workflows/ci.yml/badge.svg)](https://github.com/NewbCrescent/llama2c-m1-max-performance/actions/workflows/ci.yml)
 
 An Apple Silicon performance-engineering study built on Andrej Karpathy's
 [llama2.c](https://github.com/karpathy/llama2.c). The project asks a narrower
@@ -167,7 +167,7 @@ inference, Python training/export utilities, tests, and tokenizer assets.
 
 ## Attribution and license
 
-FastOllama is based on [`karpathy/llama2.c`](https://github.com/karpathy/llama2.c)
+This performance study is based on [`karpathy/llama2.c`](https://github.com/karpathy/llama2.c)
 at upstream commit `350e04f`. The upstream project and this fork are distributed
 under the [MIT License](LICENSE); the original copyright notice is preserved.
 

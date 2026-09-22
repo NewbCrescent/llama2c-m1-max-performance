@@ -65,7 +65,7 @@ def main() -> int:
     source_lines = (ROOT / "run.c").read_text(encoding="utf-8").splitlines()
     scalar_line = max(i for i, line in enumerate(source_lines, 1) if "for (int j = 0; j < n; j++)" in line)
 
-    with tempfile.TemporaryDirectory(prefix="fastollama-vectorization-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="llama2c-m1max-vectorization-") as temporary:
         directory = Path(temporary)
         strict = compile_report(cc, ["-O3"], directory, "strict")
         fast = compile_report(cc, ["-O3", "-ffast-math"], directory, "fast")
