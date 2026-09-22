@@ -2,6 +2,23 @@
 # example override to clang: make run CC=clang
 CC = gcc
 
+# Apple Clang has no OpenMP support, so for OpenMP builds prefer Homebrew's
+# LLVM clang + libomp when available (same approach as guidance/Makefile).
+BREW_PREFIX := $(shell command -v brew >/dev/null 2>&1 && brew --prefix 2>/dev/null)
+LLVM_PREFIX := $(firstword $(wildcard $(BREW_PREFIX)/opt/llvm $(BREW_PREFIX)/opt/llvm@22))
+
+ifneq ($(LLVM_PREFIX),)
+  OMP_CC := $(LLVM_PREFIX)/bin/clang
+  OMP_CFLAGS := -fopenmp
+  OMP_LDFLAGS := -L$(LLVM_PREFIX)/lib -Wl,-rpath,$(LLVM_PREFIX)/lib
+  OMP_LDLIBS := -lomp
+else
+  OMP_CC := $(CC)
+  OMP_CFLAGS := -fopenmp
+  OMP_LDFLAGS := -fopenmp
+  OMP_LDLIBS :=
+endif
+
 # the most basic way of building that is most likely to work on most systems
 .PHONY: run
 run: run.c
@@ -35,6 +52,12 @@ runfast: run.c
 runomp: run.c
 	$(CC) -Ofast -fopenmp -march=native run.c  -lm  -o run
 	$(CC) -Ofast -fopenmp -march=native runq.c  -lm  -o runq
+
+# builds run-simd.c (NEON intrinsics + OpenMP) using Homebrew LLVM's
+# clang + libomp, since Apple Clang rejects -fopenmp outright
+.PHONY: runsimd
+runsimd: run-simd.c
+	$(OMP_CC) -Ofast $(OMP_CFLAGS) -march=native $(OMP_LDFLAGS) run-simd.c $(OMP_LDLIBS) -lm -o run-simd
 
 .PHONY: win64
 win64:

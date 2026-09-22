@@ -1,0 +1,132 @@
+Same input file for consistency
+Same iterations (100)
+
+10 cores static:
+num elems: 10000
+checksum serial: -549853476
+elapsed wall serial: 0.004678 seconds
+checksum parallel: -549853476
+elapsed wall parallel: 0.018139 seconds
+
+num elems: 100000
+checksum serial: 1736800072
+elapsed wall serial: 0.038929 seconds
+checksum parallel: 1736800072
+elapsed wall parallel: 0.019030 seconds
+
+num elems: 1000000
+checksum serial: 1363758556
+elapsed wall serial: 0.321000 seconds
+checksum parallel: 1363758556
+elapsed wall parallel: 0.075712 seconds
+
+num elems: 10000000
+checksum serial: 336515656
+elapsed wall serial: 3.195079 seconds
+checksum parallel: 336515656
+elapsed wall parallel: 0.501910 seconds
+
+num elems: 100000000
+checksum serial: -767651860
+elapsed wall serial: 31.887746 seconds
+checksum parallel: -767651860
+elapsed wall parallel: 4.396003 seconds
+
+---
+
+8 cores static:
+num elems: 10000
+checksum serial: -549853476
+elapsed wall serial: 0.005117 seconds
+checksum parallel: -549853476
+elapsed wall parallel: 0.016214 seconds
+
+num elems: 100000
+checksum serial: 1736800072
+elapsed wall serial: 0.043159 seconds
+checksum parallel: 1736800072
+elapsed wall parallel: 0.015265 seconds
+
+num elems: 1000000
+checksum serial: 1363758556
+elapsed wall serial: 0.321350 seconds
+checksum parallel: 1363758556
+elapsed wall parallel: 0.063395 seconds
+
+num elems: 10000000
+checksum serial: 336515656
+elapsed wall serial: 3.210448 seconds
+checksum parallel: 336515656
+elapsed wall parallel: 0.452485 seconds
+
+num elems: 100000000
+checksum serial: -767651860
+elapsed wall serial: 31.993874 seconds
+checksum parallel: -767651860
+elapsed wall parallel: 4.431757 seconds
+
+---
+
+10 cores w/ schedule(dynamic, 8192):
+num elems: 10000
+checksum serial: -549853476
+elapsed wall serial: 0.003170 seconds
+checksum parallel: -549853476
+elapsed wall parallel: 0.019492 seconds
+
+num elems: 100000
+checksum serial: 1736800072
+elapsed wall serial: 0.040542 seconds
+checksum parallel: 1736800072
+elapsed wall parallel: 0.023795 seconds
+
+num elems: 1000000
+checksum serial: 1363758556
+elapsed wall serial: 0.323182 seconds
+checksum parallel: 1363758556
+elapsed wall parallel: 0.068479 seconds
+
+num elems: 10000000
+checksum serial: 336515656
+elapsed wall serial: 3.225102 seconds
+checksum parallel: 336515656
+elapsed wall parallel: 0.401759 seconds
+
+num elems: 100000000
+checksum serial: -767651860
+elapsed wall serial: 32.054361 seconds
+checksum parallel: -767651860
+elapsed wall parallel: 3.922108 seconds
+
+---
+
+10 cores w/ schedule(guided)
+num elems: 10000
+checksum serial: -549853476
+elapsed wall serial: 0.003898 seconds
+checksum parallel: -549853476
+elapsed wall parallel: 0.020704 seconds
+
+num elems: 100000
+checksum serial: 1736800072
+elapsed wall serial: 0.040724 seconds
+checksum parallel: 1736800072
+elapsed wall parallel: 0.019595 seconds
+
+num elems: 1000000
+checksum serial: 1363758556
+elapsed wall serial: 0.330659 seconds
+checksum parallel: 1363758556
+elapsed wall parallel: 0.059953 seconds
+
+num elems: 10000000
+checksum serial: 336515656
+elapsed wall serial: 3.241769 seconds
+checksum parallel: 336515656
+elapsed wall parallel: 0.399995 seconds
+
+num elems: 100000000
+checksum serial: -767651860
+elapsed wall serial: 31.983497 seconds
+checksum parallel: -767651860
+elapsed wall parallel: 3.753547 seconds
