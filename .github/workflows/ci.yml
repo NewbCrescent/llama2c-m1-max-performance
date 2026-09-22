@@ -13,7 +13,7 @@ jobs:
   portable-c:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build the portable inference binary
         run: make run
       - name: Run tokenizer unit tests
@@ -22,7 +22,7 @@ jobs:
   macos-builds:
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Install LLVM and OpenMP
         run: brew install llvm libomp
       - name: Build portable and OpenMP variants

@@ -13,13 +13,13 @@ Both builds recognize vectorizable work. The strict build preserves the ordered 
 Strict `-O3`:
 
 ```text
-run.c:269:9: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+run.c:276:9: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
 ```
 
 `-O3 -ffast-math`:
 
 ```text
-run.c:269:9: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
+run.c:276:9: remark: vectorized loop (vectorization width: 4, interleaved count: 4) [-Rpass=loop-vectorize]
 ```
 
 ## Hot-loop instruction excerpts

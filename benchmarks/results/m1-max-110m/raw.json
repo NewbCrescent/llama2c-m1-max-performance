@@ -4,6 +4,8 @@
     "git_commit": "bce27806e79532d0fca2092141f2a4af73c84d5b",
     "git_dirty": true,
     "run_c_sha256": "4fe5405222361d7bbe00416768086a9e90eb463ec6d8582e640026b39e2a6e0f",
+    "benchmark_source_commit": "4316245a9f39fd6b4b00721e3ffc94cb34712453",
+    "benchmark_source_note": "Exact benchmarked run.c; the following commit only adds portable declarations and OpenMP pragma guards.",
     "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
     "machine": "arm64",
     "cpu": "Apple M1 Max",
