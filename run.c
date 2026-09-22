@@ -13,6 +13,12 @@
     #include <unistd.h>
     #include <sys/mman.h>
 #endif
+#if defined(FASTOLLAMA_NEON)
+    #if !defined(__aarch64__) && !defined(_M_ARM64)
+        #error "FASTOLLAMA_NEON requires an ARM64 target"
+    #endif
+    #include <arm_neon.h>
+#endif
 // ----------------------------------------------------------------------------
 // Transformer model
 
@@ -218,12 +224,52 @@ void matmul(float* xout, float* x, float* w, int n, int d) {
     // W (d,n) @ x (n,) -> xout (d,)
     // by far the most amount of time is spent inside this little function
     int i;
-    #pragma omp parallel for private(i)
+    #if defined(FASTOLLAMA_RUNTIME_SCHEDULE)
+        #pragma omp parallel for private(i) schedule(runtime)
+    #else
+        #pragma omp parallel for private(i)
+    #endif
     for (i = 0; i < d; i++) {
+        #if defined(FASTOLLAMA_NEON)
+        // Eight independent accumulators hide FMA latency. FASTOLLAMA_NEON is
+        // intentionally opt-in so it can be compared with Clang's generated
+        // ARM64 SIMD from the same source and floating-point assumptions.
+        int j = 0;
+        float32x4_t acc0 = vdupq_n_f32(0.0f);
+        float32x4_t acc1 = vdupq_n_f32(0.0f);
+        float32x4_t acc2 = vdupq_n_f32(0.0f);
+        float32x4_t acc3 = vdupq_n_f32(0.0f);
+        float32x4_t acc4 = vdupq_n_f32(0.0f);
+        float32x4_t acc5 = vdupq_n_f32(0.0f);
+        float32x4_t acc6 = vdupq_n_f32(0.0f);
+        float32x4_t acc7 = vdupq_n_f32(0.0f);
+        for (; j + 31 < n; j += 32) {
+            const float* row = w + i * n + j;
+            acc0 = vfmaq_f32(acc0, vld1q_f32(row),      vld1q_f32(x + j));
+            acc1 = vfmaq_f32(acc1, vld1q_f32(row + 4),  vld1q_f32(x + j + 4));
+            acc2 = vfmaq_f32(acc2, vld1q_f32(row + 8),  vld1q_f32(x + j + 8));
+            acc3 = vfmaq_f32(acc3, vld1q_f32(row + 12), vld1q_f32(x + j + 12));
+            acc4 = vfmaq_f32(acc4, vld1q_f32(row + 16), vld1q_f32(x + j + 16));
+            acc5 = vfmaq_f32(acc5, vld1q_f32(row + 20), vld1q_f32(x + j + 20));
+            acc6 = vfmaq_f32(acc6, vld1q_f32(row + 24), vld1q_f32(x + j + 24));
+            acc7 = vfmaq_f32(acc7, vld1q_f32(row + 28), vld1q_f32(x + j + 28));
+        }
+        acc0 = vaddq_f32(acc0, acc1);
+        acc2 = vaddq_f32(acc2, acc3);
+        acc4 = vaddq_f32(acc4, acc5);
+        acc6 = vaddq_f32(acc6, acc7);
+        acc0 = vaddq_f32(acc0, acc2);
+        acc4 = vaddq_f32(acc4, acc6);
+        float val = vaddvq_f32(vaddq_f32(acc0, acc4));
+        for (; j < n; j++) {
+            val += w[i * n + j] * x[j];
+        }
+        #else
         float val = 0.0f;
         for (int j = 0; j < n; j++) {
             val += w[i * n + j] * x[j];
         }
+        #endif
         xout[i] = val;
     }
 }
@@ -246,7 +292,7 @@ float* forward(Transformer* transformer, int token, int pos) {
     memcpy(x, content_row, dim*sizeof(*x));
 
     // forward all the layers
-    for(unsigned long long l = 0; l < p->n_layers; l++) {
+    for(unsigned long long l = 0; l < (unsigned long long)p->n_layers; l++) {
 
         // attention rmsnorm
         rmsnorm(s->xb, x, w->rms_att_weight + l*dim, dim);
@@ -526,7 +572,7 @@ void encode(Tokenizer* t, char *text, int8_t bos, int8_t eos, int *tokens, int *
             // byte_fallback encoding: just encode each byte as a token
             // +3 is here because the first 3 vocab elements are <unk>, <s>, </s>
             // so the individual bytes only start at index 3
-            for (int i=0; i < str_len; i++) {
+            for (size_t i = 0; i < str_len; i++) {
                 tokens[(*n_tokens)++] = (unsigned char)str_buffer[i] + 3;
             }
         }
@@ -815,7 +861,6 @@ void chat(Transformer *transformer, Tokenizer *tokenizer, Sampler *sampler,
     int8_t user_turn = 1; // user starts
     int next;        // will store the next token in the sequence
     int token;       // stores the current token to feed into the transformer
-    int prev_token;
     int pos = 0;     // position in the sequence
     while (pos < steps) {
 

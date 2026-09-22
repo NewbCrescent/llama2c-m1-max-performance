@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-c:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the portable inference binary
+        run: make run
+      - name: Run tokenizer unit tests
+        run: make testc
+
+  macos-builds:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LLVM and OpenMP
+        run: brew install llvm libomp
+      - name: Build portable and OpenMP variants
+        run: make run runfast runomp CC=/opt/homebrew/opt/llvm/bin/clang
+      - name: Build the explicit NEON variant on ARM64 runners
+        if: runner.arch == 'ARM64'
+        run: make runneon CC=/opt/homebrew/opt/llvm/bin/clang
+      - name: Run tokenizer unit tests
+        run: make testc CC=/opt/homebrew/opt/llvm/bin/clang

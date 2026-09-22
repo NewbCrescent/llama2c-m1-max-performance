@@ -1,0 +1,33 @@
+.DS_Store
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# Editor and local environment files
+.vscode/
+.env
+.envrc
+
+# Build and test artifacts
+/build/
+/run
+/run-fast
+/run-omp
+/run-neon
+/run-simd
+/runq
+/testc
+/test/
+/err.txt
+/stdout.txt
+/guidance/build/
+/guidance/fastollama
+/guidance/input.bin
+/guidance/.start.sh
+
+# Model checkpoints are downloaded separately; tokenizers remain tracked.
+/stories*.bin
+/llama*.bin
+
+# Local scratch files retained outside the published project.
+/Untitled-1.py

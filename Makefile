@@ -1,99 +1,78 @@
-# choose your compiler, e.g. gcc/clang
-# example override to clang: make run CC=clang
-CC = gcc
+CC ?= cc
+BUILD_DIR ?= build
 
-# Apple Clang has no OpenMP support, so for OpenMP builds prefer Homebrew's
-# LLVM clang + libomp when available (same approach as guidance/Makefile).
 BREW_PREFIX := $(shell command -v brew >/dev/null 2>&1 && brew --prefix 2>/dev/null)
 LLVM_PREFIX := $(firstword $(wildcard $(BREW_PREFIX)/opt/llvm $(BREW_PREFIX)/opt/llvm@22))
 
 ifneq ($(LLVM_PREFIX),)
-  OMP_CC := $(LLVM_PREFIX)/bin/clang
-  OMP_CFLAGS := -fopenmp
-  OMP_LDFLAGS := -L$(LLVM_PREFIX)/lib -Wl,-rpath,$(LLVM_PREFIX)/lib
-  OMP_LDLIBS := -lomp
+  OMP_CC ?= $(LLVM_PREFIX)/bin/clang
+  OMP_LDFLAGS ?= -L$(LLVM_PREFIX)/lib -Wl,-rpath,$(LLVM_PREFIX)/lib
 else
-  OMP_CC := $(CC)
-  OMP_CFLAGS := -fopenmp
-  OMP_LDFLAGS := -fopenmp
-  OMP_LDLIBS :=
+  OMP_CC ?= $(CC)
+  OMP_LDFLAGS ?=
 endif
 
-# the most basic way of building that is most likely to work on most systems
-.PHONY: run
+COMMON_FLAGS ?= -std=c11 -Wall -Wextra -march=native
+FAST_FLAGS ?= -O3 -ffast-math
+OMP_FLAGS ?= -fopenmp
+
+.PHONY: all run runfast runomp runneon runsimd runq debug win64 rungnu runompgnu test testc testcc clean benchmark
+
+all: run
+
+# Upstream-compatible, standards-conforming single-thread build.
 run: run.c
-	$(CC) -O3 -o run run.c -lm
-	$(CC) -O3 -o runq runq.c -lm
+	$(CC) $(COMMON_FLAGS) -O3 run.c -lm -o run
 
-# useful for a debug build, can then e.g. analyze with valgrind, example:
-# $ valgrind --leak-check=full ./run out/model.bin -n 3
-rundebug: run.c
-	$(CC) -g -o run run.c -lm
-	$(CC) -g -o runq runq.c -lm
-
-# https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html
-# https://simonbyrne.github.io/notes/fastmath/
-# -Ofast enables all -O3 optimizations.
-# Disregards strict standards compliance.
-# It also enables optimizations that are not valid for all standard-compliant programs.
-# It turns on -ffast-math, -fallow-store-data-races and the Fortran-specific
-# -fstack-arrays, unless -fmax-stack-var-size is specified, and -fno-protect-parens.
-# It turns off -fsemantic-interposition.
-# In our specific application this is *probably* okay to use
-.PHONY: runfast
+# Same source with relaxed floating-point semantics, enabling reassociated SIMD.
 runfast: run.c
-	$(CC) -Ofast -o run run.c -lm
-	$(CC) -Ofast -o runq runq.c -lm
+	$(CC) $(COMMON_FLAGS) $(FAST_FLAGS) run.c -lm -o run-fast
 
-# additionally compiles with OpenMP, allowing multithreaded runs
-# make sure to also enable multiple threads when running, e.g.:
-# OMP_NUM_THREADS=4 ./run out/model.bin
-.PHONY: runomp
+# Auto-vectorized OpenMP build. OMP_SCHEDULE selects static/dynamic/guided.
 runomp: run.c
-	$(CC) -Ofast -fopenmp -march=native run.c  -lm  -o run
-	$(CC) -Ofast -fopenmp -march=native runq.c  -lm  -o runq
+	$(OMP_CC) $(COMMON_FLAGS) $(FAST_FLAGS) $(OMP_FLAGS) \
+		-DFASTOLLAMA_RUNTIME_SCHEDULE $(OMP_LDFLAGS) run.c -lm -o run-omp
 
-# builds run-simd.c (NEON intrinsics + OpenMP) using Homebrew LLVM's
-# clang + libomp, since Apple Clang rejects -fopenmp outright
-.PHONY: runsimd
-runsimd: run-simd.c
-	$(OMP_CC) -Ofast $(OMP_CFLAGS) -march=native $(OMP_LDFLAGS) run-simd.c $(OMP_LDLIBS) -lm -o run-simd
+# Explicit ARM NEON experiment, compiled with the same fast-math/OpenMP flags.
+runneon: run.c
+	$(OMP_CC) $(COMMON_FLAGS) $(FAST_FLAGS) $(OMP_FLAGS) \
+		-DFASTOLLAMA_RUNTIME_SCHEDULE -DFASTOLLAMA_NEON \
+		$(OMP_LDFLAGS) run.c -lm -o run-neon
 
-.PHONY: win64
+# Compatibility alias for the name used during the original experiment.
+runsimd: runneon
+
+runq: runq.c
+	$(CC) $(COMMON_FLAGS) -O3 runq.c -lm -o runq
+
+debug: run.c
+	$(CC) $(COMMON_FLAGS) -O0 -g run.c -lm -o run
+
+# Inherited cross-platform targets from llama2.c.
 win64:
 	x86_64-w64-mingw32-gcc -Ofast -D_WIN32 -o run.exe -I. run.c win.c
 	x86_64-w64-mingw32-gcc -Ofast -D_WIN32 -o runq.exe -I. runq.c win.c
 
-# compiles with gnu99 standard flags for amazon linux, coreos, etc. compatibility
-.PHONY: rungnu
 rungnu:
 	$(CC) -Ofast -std=gnu11 -o run run.c -lm
 	$(CC) -Ofast -std=gnu11 -o runq runq.c -lm
 
-.PHONY: runompgnu
 runompgnu:
-	$(CC) -Ofast -fopenmp -std=gnu11 run.c  -lm  -o run
-	$(CC) -Ofast -fopenmp -std=gnu11 runq.c  -lm  -o runq
+	$(CC) -Ofast -fopenmp -std=gnu11 run.c -lm -o run
+	$(CC) -Ofast -fopenmp -std=gnu11 runq.c -lm -o runq
 
-# run all tests
-.PHONY: test
-test:
+test: run
 	pytest
 
-# run only tests for run.c C implementation (is a bit faster if only C code changed)
-.PHONY: testc
 testc:
-	pytest -k runc
-
-# run the C tests, without touching pytest / python
-# to increase verbosity level run e.g. as `make testcc VERBOSITY=1`
-VERBOSITY ?= 0
-.PHONY: testcc
-testcc:
-	$(CC) -DVERBOSITY=$(VERBOSITY) -O3 -o testc test.c -lm
+	$(CC) -DVERBOSITY=0 -O3 -o testc test.c -lm
 	./testc
 
-.PHONY: clean
+testcc: testc
+
+benchmark:
+	@test -n "$(MODEL)" || (echo "usage: make benchmark MODEL=/path/to/model.bin"; exit 2)
+	python3 benchmarks/run_benchmarks.py --model "$(MODEL)"
+
 clean:
-	rm -f run
-	rm -f runq
+	rm -rf $(BUILD_DIR) run run-fast run-omp run-neon run-simd runq run.exe runq.exe testc
